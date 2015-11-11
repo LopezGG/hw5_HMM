@@ -11,12 +11,12 @@ namespace HMM_trigram
     {
         static void Main(string[] args)
         {
-            string trainingPath = @"C:\compling570\hw5_HMM\examples\wsj_sec0.word_pos";
+            string trainingPath = @"E:\CompLing\CompLing570\hw6_dir\examples\wsj_sec0.word_pos";
 
             string outputPath = args[0];
-            int l1 = Convert.ToInt32(args[1]);
-            int l2 = Convert.ToInt32(args[2]);
-            int l3 = Convert.ToInt32(args[3]);
+            double l1 = Convert.ToDouble(args[1]);
+            double l2 = Convert.ToDouble(args[2]);
+            double l3 = Convert.ToDouble(args[3]);
             String UnkProbFile = args[4];
             string line;
             Dictionary<String, Dictionary<String, double>> Emission = new Dictionary<string, Dictionary<string, double>>();
@@ -27,21 +27,164 @@ namespace HMM_trigram
             Dictionary<String,double> UnkTagProb = new Dictionary<string,double>();
             int TotalEmissionArc = 0;
             int TotalTransmissionArc = 0;
-
+            double POStagsetSize = 0;
             //read UnkProb into dictionary
             ReadUnkProb(UnkTagProb, UnkProbFile);
 
+            //read the training data and populate all the dictionaries
             using (StreamReader SR = new StreamReader(trainingPath))
             {
                 while ((line = SR.ReadLine()) != null)
                 {
                     if (String.IsNullOrWhiteSpace(line))
                         continue;
-                    //ProcessLineTrigram(Emission, Transition, TagCount, line, symbolList);
+                    POStagsetSize += ConvertTrigramToCounts(Emission, TransitionBigram, TransitionTrigram, TagCount, symbolList, line);
                 }
 
             }
+
+            TotalTransmissionArc = ConvertCountToProbTrigram(TransitionTrigram, TransitionBigram, TagCount, POStagsetSize, l1, l2, l3);
+
+            Console.ReadLine();
         }
+        public static int HandleEmission (Dictionary<String, Dictionary<String, double>> Emission,Dictionary<String, int> TagCount, Dictionary<String,double> UnkTagProb)
+        {
+            int EmissionArc = 0;
+            double prob = 0;
+            Dictionary<String, Dictionary<String, double>> TempDict = new Dictionary<string, Dictionary<string, double>>();
+            foreach (var tagset in Emission)
+            {
+
+                int totalTagCount;
+                
+
+                foreach (KeyValuePair<String, double> item in tagset.Value)
+                {
+                    // we are taking t3 tag's count
+                    if (TagCount.ContainsKey(item.Key))
+                        totalTagCount = TagCount[tagset.Key];
+                    else
+                        throw new Exception("The dictionary was not built correctly");
+                    
+                    double tagCount = item.Value;
+                    prob = (tagCount / totalTagCount); 
+                    if (TempDict.ContainsKey(tagset.Key))
+                        TempDict[tagset.Key].Add(item.Key, );
+                    else
+
+                        TempDict.Add(tagset.Key, new Dictionary<string, double> { { item.Key, (Emission[tagset.Key])[item.Key] / totalTagCount } });
+                    EmissionArc++;
+                }
+
+            }
+
+            foreach (var tagset in TempDict)
+            {
+                foreach (KeyValuePair<String, double> item in tagset.Value)
+                {
+                    (Emission[tagset.Key])[item.Key] = (TempDict[tagset.Key])[item.Key];
+                }
+            }
+
+            return EmissionArc;
+        }
+        public static int ConvertCountToProbTrigram (Dictionary<String, Dictionary<String, double>> TrigramDictionary,
+            Dictionary<String, Dictionary<String, double>> BigramDictionary,
+            Dictionary<String, int> TagCount,
+            double POStagsetSize,
+            double l1,
+            double l2,
+            double l3)
+        {
+            
+            double bigramCount = 0;
+            double tagCount = 0;
+            int TotalTriGramCount = 0;
+            double prob3;
+            double prob2;
+            double prob1;
+            double pIntero = 0;
+            Dictionary<String, double> TempDictUni = new Dictionary<string, double>();
+            Dictionary<String, Dictionary<String, double>> TempDictBi = new Dictionary<string, Dictionary<string, double>>();
+            Dictionary<String, Dictionary<String, double>> TempDictTri = new Dictionary<string, Dictionary<string, double>>();
+            
+            //Calculate Unigram prob and store in temp Dictionary because we cannot modify the dictioanry we iterate through
+            foreach (var item in TagCount)
+            {
+                tagCount = item.Value;
+                //here the key must be unique because parent is a dictioanry 
+                TempDictUni.Add(item.Key, tagCount / POStagsetSize);
+
+            }
+
+            //Calculate Bigram prob and store in a temp Dictionary
+            foreach (var tagset in BigramDictionary)
+            {
+
+                int totalTagCount;
+                if (TagCount.ContainsKey(tagset.Key))
+                    totalTagCount = TagCount[tagset.Key];
+                else
+                    throw new Exception("The dictionary was not built correctly");
+                foreach (KeyValuePair<String, double> item in tagset.Value)
+                {
+                    tagCount = item.Value;
+                    if (TempDictBi.ContainsKey(tagset.Key))
+                        TempDictBi[tagset.Key].Add(item.Key, tagCount / totalTagCount);
+                    else
+
+                        TempDictBi.Add(tagset.Key, new Dictionary<string, double> { { item.Key, tagCount/ totalTagCount } });
+                }
+
+            }
+
+
+            //Grand Finale : Calculate prob for trigram
+            foreach (var tagset in TrigramDictionary)
+            {
+                string[] bigram = tagset.Key.ToString().Split(new string[] { "_" }, StringSplitOptions.RemoveEmptyEntries);
+
+                if(BigramDictionary.ContainsKey(bigram[0]) && (BigramDictionary[bigram[0]]).ContainsKey(bigram[1]) )
+                     bigramCount = BigramDictionary[bigram[0]][bigram[1]];
+
+                foreach (var item in tagset.Value)
+                {
+                    tagCount = item.Value;
+                    if (item.Key == "BOS")
+                        prob3 = 0;
+                    else if (bigramCount == 0)
+                        prob3 = 1 / (POStagsetSize + 1);
+                    else
+                        prob3 = tagCount / bigramCount;
+
+                    if (bigramCount != 0)
+                        prob2 = TempDictBi[bigram[0]][bigram[1]];
+                    else
+                        prob2 =0;
+
+                    prob1 = TempDictUni[bigram[0]];
+
+                    pIntero = (l3 * prob3) + (l2 * prob2) + (l1 * prob1);
+                    if (TempDictTri.ContainsKey(tagset.Key))
+                        TempDictTri[tagset.Key].Add(item.Key, pIntero);
+                    else
+                        TempDictTri.Add(tagset.Key, new Dictionary<string, double> { { item.Key, pIntero } });
+                    TotalTriGramCount++;
+
+                }
+            }
+
+
+            foreach (var tagset in TempDictTri)
+            {
+                foreach (KeyValuePair<String, double> item in tagset.Value)
+                {
+                    (TrigramDictionary[tagset.Key])[item.Key] = (TrigramDictionary[tagset.Key])[item.Key];
+                }
+            }
+            return TotalTriGramCount;
+        }
+
         public static void ReadUnkProb(Dictionary<String,double> UnkTagProb,String UnkProbPath)
         {
             string line;
@@ -58,7 +201,7 @@ namespace HMM_trigram
                 }
             }
         }
-        public static void ConvertTrigramToCounts(Dictionary<String, Dictionary<String, double>> Emission,
+        public static int ConvertTrigramToCounts(Dictionary<String, Dictionary<String, double>> Emission,
         Dictionary<String, Dictionary<String, double>> TransitionBigram,
         Dictionary<String, Dictionary<String, double>> TransitionTrigram,
         Dictionary<String, int> TagCount,
@@ -71,6 +214,8 @@ namespace HMM_trigram
             string tag2;
             string tag3;
             string observation;
+            //initialize with 2 to account for 2 BOS we aded to the line
+            int sumOfTags = 0;
             string[] wordList = line.Split(new string[] { " " }, StringSplitOptions.RemoveEmptyEntries);
             // add BOS once for each sentence 
             if (TagCount.ContainsKey("BOS"))
@@ -116,15 +261,17 @@ namespace HMM_trigram
 
                 ////for trigram transition update the count
                 fromState = tag1+"_"+tag2;
-                if (TransitionTrigram.ContainsKey(fromState) && TransitionTrigram[fromState].ContainsKey(tag3))
-                    (TransitionTrigram[fromState])[tag3]++;
+                string toState = tag2 + "_" + tag3;
+                if (TransitionTrigram.ContainsKey(fromState) && TransitionTrigram[fromState].ContainsKey(toState))
+                    (TransitionTrigram[fromState])[toState]++;
                 else
                 {
                     if (TransitionTrigram.ContainsKey(fromState))
-                        TransitionTrigram[fromState].Add(tag3, 1);
+                        TransitionTrigram[fromState].Add(toState, 1);
                     else
-                        TransitionTrigram.Add(fromState, new Dictionary<string, double> { { tag3, 1 } });
+                        TransitionTrigram.Add(fromState, new Dictionary<string, double> { { toState, 1 } });
                 }
+
                 //Coming to Emission Prob table
                 if (Emission.ContainsKey(tag3) && (Emission[tag3]).ContainsKey(observation))
                     (Emission[tag3])[observation]++;
@@ -139,7 +286,10 @@ namespace HMM_trigram
 
                 if (!symbolList.ContainsKey(observation))
                     symbolList.Add(observation, true);
+                sumOfTags++;
             }
+            // doing a -- to eliminate the EOS count
+            return --sumOfTags;
         }
     }
 }

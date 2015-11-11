@@ -12,8 +12,8 @@ namespace HMM
     {
         static void Main(string[] args)
         {
-            string trainingPath = @"C:\compling570\hw5_HMM\examples\wsj_sec0.word_pos";
-            string outputPath = @"C:\compling570\hw5_HMM\examples\output_hmm";
+            string trainingPath = @"E:\CompLing\CompLing570\hw6_dir\examples\wsj_sec0.word_pos";
+            string outputPath = @"E:\CompLing\CompLing570\hw6_dir\examples\output_hmm";
             string line;
             Dictionary<String, Dictionary<String, double>> Emission = new Dictionary<string, Dictionary<string, double>>();
             Dictionary<String, Dictionary<String, double>> Transition = new Dictionary<string, Dictionary<string, double>>();
