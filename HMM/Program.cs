@@ -18,6 +18,7 @@ namespace HMM
             Dictionary<String, Dictionary<String, double>> Emission = new Dictionary<string, Dictionary<string, double>>();
             Dictionary<String, Dictionary<String, double>> Transition = new Dictionary<string, Dictionary<string, double>>();
             Dictionary<String, bool> symbolList = new Dictionary<string, bool>();
+           
             Dictionary<String, int> TagCount = new Dictionary<string, int>();
             int TotalEmissionArc = 0;
             int TotalTransmissionArc = 0;
@@ -46,7 +47,7 @@ namespace HMM
                 Sw.WriteLine("emiss_line_num=" + TotalEmissionArc);
                 Sw.WriteLine();
                 Sw.WriteLine(@"\init");
-                Sw.WriteLine("BOS" + "\t" + "1.0");
+                Sw.WriteLine("BOS" + "\t" + "1.0"+"\t"+"0.000");
                 Sw.WriteLine();
                 Sw.WriteLine(@"\transition");
                 WriteDictionary(Transition, Sw);
