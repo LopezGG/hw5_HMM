@@ -12,8 +12,8 @@ namespace HMM
     {
         static void Main(string[] args)
         {
-            string trainingPath = @"E:\CompLing\CompLing570\hw6_dir\examples\wsj_sec0.word_pos";
-            string outputPath = @"E:\CompLing\CompLing570\hw6_dir\examples\output_hmm";
+            string trainingPath = args[0];
+            string outputPath = args[1];
             string line;
             Dictionary<String, Dictionary<String, double>> Emission = new Dictionary<string, Dictionary<string, double>>();
             Dictionary<String, Dictionary<String, double>> Transition = new Dictionary<string, Dictionary<string, double>>();
@@ -57,7 +57,7 @@ namespace HMM
 
 
             }
-            Console.ReadLine();
+            //Console.ReadLine();
         }
 
         public static void WriteDictionary(Dictionary<String, Dictionary<String, double>> Target2DDictionary, StreamWriter Sw)

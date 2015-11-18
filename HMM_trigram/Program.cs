@@ -11,13 +11,15 @@ namespace HMM_trigram
     {
         static void Main(string[] args)
         {
-            string trainingPath = @"E:\CompLing\CompLing570\hw6_dir\examples\wsj_sec0.word_pos";
 
+            if (args.Length < 6)
+                throw new Exception("incorrect number of arguments");
             string outputPath = args[0];
             double l1 = Convert.ToDouble(args[1]);
             double l2 = Convert.ToDouble(args[2]);
             double l3 = Convert.ToDouble(args[3]);
             String UnkProbFile = args[4];
+            string trainingPath = args[5];
             string line;
             Dictionary<String, Dictionary<String, double>> Emission = new Dictionary<string, Dictionary<string, double>>();
             Dictionary<String, Dictionary<String, double>> NewEmission = new Dictionary<string, Dictionary<string, double>>();
@@ -67,6 +69,12 @@ namespace HMM_trigram
                 Sw.WriteLine();
                 Sw.WriteLine(@"\emission");
                 WriteDictionary(NewEmission, Sw);
+            }
+            Dictionary<String, Double> test = TransitionTrigram["BOS_BOS"];
+            double t = 0;
+            foreach (var item in test)
+            {
+                t += item.Value;
             }
             Console.ReadLine();
         }
@@ -170,13 +178,21 @@ namespace HMM_trigram
             Dictionary<String, Dictionary<String, double>> TempDictTri = new Dictionary<string, Dictionary<string, double>>();
             
             //Calculate Unigram prob and store in temp Dictionary because we cannot modify the dictioanry we iterate through
+            double totaltags=0;
             foreach (var item in TagCount)
             {
                 tagCount = item.Value;
-                //here the key must be unique because parent is a dictioanry 
-                TempDictUni.Add(item.Key, tagCount / POStagsetSize);
-               
+                totaltags += tagCount;
+                            
 
+            }
+            foreach (var item in TagCount)
+            {
+                //here the key must be unique because parent is a dictioanry
+                double pro = tagCount / totaltags;
+                if (pro > 1)
+                    Console.WriteLine("prob>1");
+                TempDictUni.Add(item.Key, tagCount / totaltags);
             }
 
             //Calculate Bigram prob and store in a temp Dictionary
@@ -230,7 +246,7 @@ namespace HMM_trigram
                             tagCount = TrigramDictionary[t1t2][t3App];
                         else
                             tagCount = 0;
-                        
+               
                         if (t3 == "BOS")
                             prob3 = 0;
                         else if ((tagCount == 0) || (bigramCount == 0))
@@ -246,7 +262,8 @@ namespace HMM_trigram
                         prob1 = TempDictUni[t3];
 
                         pIntero = (l3 * prob3) + (l2 * prob2) + (l1 * prob1);
-                        
+                        if(pIntero>1)
+                            Console.WriteLine("Pintro greater than 1");
                         if (TempDictTri.ContainsKey(t1t2))
                             TempDictTri[t1t2].Add(t3App, pIntero);
                         else

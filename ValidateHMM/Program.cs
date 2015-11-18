@@ -173,6 +173,8 @@ namespace ValidateHMM
             }
             foreach (var tagset in TransitionBlock)
             {
+                if(tagset.Key == "BOS_BOS")
+                    Console.WriteLine("Wait");
                 totalProb = 0;
                 foreach (var items in tagset.Value)
                 {
